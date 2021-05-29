@@ -1,0 +1,24 @@
+00_example.cpp
+  module load gcc/8.3.0 intel-mpi
+  mpicxx 00_example.cpp -O3 -march=native -DCHRONO
+  mpirun -np 4 ./a.out 2048
+
+01_omp.cpp
+  module load gcc/8.3.0 intel-mpi  
+  mpicxx 01_omp.cpp -O3 -march=native -fopenmp -DCHRONO
+  mpirun -np 4 ./a.out 2048 
+
+02_cashline.cpp
+  module load gcc/8.3.0 intel-mpi
+  mpicxx 02_cashline.cpp -O3 -march=native -fopenmp -DCHRONO
+  mpirun -np 4 ./a.out 2048
+
+03_blocking.cpp
+  module load gcc/8.3.0 intel-mpi
+  mpicxx 03_blocking.cpp -O3 -march=native -fopenmp -DCHRONO
+  mpirun -np 4 ./a.out 2048 
+
+04_simd.cpp
+  module load gcc/8.3.0 intel-mpi intel
+  mpicxx 04_simd.cpp -O3 -march=native -fopenmp -DCHRONO 
+  mpirun -np 4 ./a.out 2048

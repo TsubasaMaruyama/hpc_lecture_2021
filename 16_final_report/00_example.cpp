@@ -1,3 +1,4 @@
+/* baseline */
 #include <mpi.h>
 #include <cstdio>
 #include <cmath>
@@ -11,13 +12,14 @@ int main(int argc, char** argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  const int N = 256;
+  const int N = (argc >= 2) ? atol(argv[1]) : 256;  
   vector<float> A(N*N);
   vector<float> B(N*N);
   vector<float> C(N*N, 0);
   vector<float> subA(N*N/size);
   vector<float> subB(N*N/size);
   vector<float> subC(N*N/size, 0);
+  vector<float> recv(N*N/size);
   for (int i=0; i<N; i++) {
     for (int j=0; j<N; j++) {
       A[N*i+j] = drand48();
@@ -44,15 +46,19 @@ int main(int argc, char** argv) {
           subC[N*i+j+offset] += subA[N*i+k] * subB[N/size*k+j];
     auto toc = chrono::steady_clock::now();
     comp_time += chrono::duration<double>(toc - tic).count();
-    MPI_Send(&subB[0], N*N/size, MPI_FLOAT, send_to, 0, MPI_COMM_WORLD);
-    MPI_Recv(&subB[0], N*N/size, MPI_FLOAT, recv_from, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Request request[2];
+    MPI_Isend(&subB[0], N*N/size, MPI_FLOAT, send_to, 0, MPI_COMM_WORLD, &request[0]);
+    MPI_Irecv(&recv[0], N*N/size, MPI_FLOAT, recv_from, 0, MPI_COMM_WORLD, &request[1]);
+    MPI_Waitall(2, request, MPI_STATUS_IGNORE);
+    for (int i=0; i<N*N/size; i++)
+      subB[i] = recv[i];
     tic = chrono::steady_clock::now();
     comm_time += chrono::duration<double>(tic - toc).count();
   }
   MPI_Allgather(&subC[0], N*N/size, MPI_FLOAT, &C[0], N*N/size, MPI_FLOAT, MPI_COMM_WORLD);
   for (int i=0; i<N; i++)
-    for (int j=0; j<N; j++)
-      for (int k=0; k<N; k++)
+	for (int k=0; k<N; k++)
+	  for (int j=0; j<N; j++)
         C[N*i+j] -= A[N*i+k] * B[N*k+j];
   double err = 0;
   for (int i=0; i<N; i++)
