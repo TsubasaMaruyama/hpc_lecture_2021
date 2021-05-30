@@ -16,8 +16,8 @@ void matmult(vector<float> &A, vector<float> &B, vector<float> &C, int N1, int N
   const int nr = 64;
   const int mr = 32;
 #pragma omp parallel for collapse(2)
-  for (int jc=0; jc<n; jc+=nc) {
-    for (int pc=0; pc<k; pc+=kc) {
+  for (int pc=0; pc<k; pc+=kc) {
+	for (int jc=0; jc<n; jc+=nc) {
       float Bc[kc*nc];
       for (int p=0; p<kc; p++) {
         for (int j=0; j<nc; j++) {
@@ -36,8 +36,8 @@ void matmult(vector<float> &A, vector<float> &B, vector<float> &C, int N1, int N
         }
         for (int jr=0; jr<nc; jr+=nr) {
           for (int ir=0; ir<mc; ir+=mr) {
-            for (int kr=0; kr<kc; kr++) {
-              for (int i=ir; i<ir+mr; i++) {
+			for (int i=ir; i<ir+mr; i++) {
+			  for (int kr=0; kr<kc; kr++) { 
 				__m256 Avec = _mm256_broadcast_ss(&Ac[i*kc+kr]);
                 for (int j=jr; j<jr+nr; j+=8) {
 				  __m256 Bvec = _mm256_load_ps(&Bc[kr*nc+j]);
@@ -49,8 +49,8 @@ void matmult(vector<float> &A, vector<float> &B, vector<float> &C, int N1, int N
             }
           }
         }
-        for (int i=0; i<mc; i++) {
-          for (int j=0; j<nc; j++) {
+		for (int i=0; i<mc; i++) {  
+		  for (int j=0; j<nc; j++) {  
             C[N1*(i+ic)+(j+jc)+offset] += Cc[i*nc+j];
           }
         }
@@ -68,6 +68,10 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   const int N = (argc >= 2) ? atol(argv[1]) : 256;
+  if (N < 512) {
+    printf("Too short input. Please more than 2048\n");
+    exit(1);
+  }
   vector<float> A(N*N);
   vector<float> B(N*N);
   vector<float> C(N*N, 0);
